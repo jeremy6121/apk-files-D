@@ -16,25 +16,27 @@ jobs:
       - name: Extract project ZIP
         run: |
           unzip -o cosmic-dodge.zip -d project
-          echo "Extracted files:"
-          find project -maxdepth 3 -type f | head -100
+          find project -maxdepth 4 -type f | head -100
 
-      - name: Find Android project
+      - name: Find project
         run: |
-          GRADLEW=$(find project -name gradlew -type f | head -1)
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew not found"
-            exit 1
-          fi
-          PROJECT_DIR=$(dirname "$GRADLEW")
+          PROJECT_DIR=$(find project -name settings.gradle.kts -o -name settings.gradle | head -1 | xargs dirname)
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Project found at: $PROJECT_DIR"
 
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate Gradle wrapper
+        run: |
+          cd "$PROJECT_DIR"
+          gradle wrapper
 
       - name: Fix debug signing
         run: |
