@@ -55,6 +55,72 @@ jobs:
         run: |
           sed -i '/signingConfig = signingConfigs.getByName("debugConfig")/d' "$PROJECT_DIR/app/build.gradle.kts"
 
+      - name: Fix CrewScreen
+        run: |
+          CREW_SCREEN=$(find "$PROJECT_DIR/app/src/main/java" -name "CrewScreen.kt" | head -1)
+
+          if [ -z "$CREW_SCREEN" ]; then
+            echo "ERROR: CrewScreen.kt not found!"
+            exit 1
+          fi
+
+          echo "Patching: $CREW_SCREEN"
+
+          python3 - "$CREW_SCREEN" <<'PY'
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          text = path.read_text()
+
+          # Fix model property names
+          text = text.replace(
+              "astronaut.experienceLevel",
+              "astronaut.level"
+          )
+
+          text = text.replace(
+              "astronaut.missionsCompleted",
+              "astronaut.missionsFlown"
+          )
+
+          text = text.replace(
+              "astronaut.role.specialPerk",
+              "astronaut.role.perkDescription"
+          )
+
+          # Remove unsupported enum branches.
+          text = text.replace(
+              '    CrewRole.COMMANDER -> Color(0xFFFFD700).copy(alpha = 0.2f)\n',
+              ''
+          )
+          text = text.replace(
+              '    CrewRole.SPECIALIST -> Color(0xFF00E676).copy(alpha = 0.2f)\n',
+              ''
+          )
+
+          text = text.replace(
+              '    CrewRole.COMMANDER -> Icons.Default.Stars\n',
+              ''
+          )
+          text = text.replace(
+              '    CrewRole.SPECIALIST -> Icons.Default.Shield\n',
+              ''
+          )
+
+          text = text.replace(
+              '    CrewRole.COMMANDER -> Color(0xFFFFD700)\n',
+              ''
+          )
+          text = text.replace(
+              '    CrewRole.SPECIALIST -> Color(0xFF00E676)\n',
+              ''
+          )
+
+          path.write_text(text)
+          print("CrewScreen.kt patched successfully.")
+          PY
+
       - name: Build APK
         run: |
           cd "$PROJECT_DIR"
